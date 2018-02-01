@@ -1,0 +1,55 @@
+version: '3'
+services:
+  domain1:
+    image: nginx
+    volumes:
+      - ./domain1/domain1.conf:/domain1.conf
+      - ./domain1/:/var/www
+    expose:
+      - "8081"
+    environment:
+      - NGINX_HOST=domain1.com
+      - NGINX_PORT=8081
+    command: /bin/bash -c "envsubst '$$NGINX_HOST $$NGINX_PORT' < /domain1.conf > /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"
+
+  domain2:
+    image: nginx
+    volumes:
+      - ./domain2/domain2.conf:/domain2.conf
+      - ./domain2/:/var/www
+    expose:
+      - "8082"
+    environment:
+      - NGINX_HOST=domain2.com
+      - NGINX_PORT=8082
+    command: /bin/bash -c "envsubst '$$NGINX_HOST $$NGINX_PORT' < /domain2.conf > /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"
+
+  domain3:
+    image: nginx
+    volumes:
+      - ./domain3/domain3.conf:/domain3.conf
+      - ./domain3/:/var/www
+    expose:
+      - "8083"
+    environment:
+      - NGINX_HOST=domain3.com
+      - NGINX_PORT=8083
+    command: /bin/bash -c "envsubst '$$NGINX_HOST $$NGINX_PORT' < /domain3.conf > /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"
+
+  haproxy:
+    #build: ./haproxy
+    image: haproxy:1.5
+    volumes:
+      - ./haproxy/etc/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg
+    depends_on:
+      - domain1
+      - domain2
+      - domain3
+    links:
+      - domain1
+      - domain2
+      - domain3
+    # volumes:
+    #   - /var/run/docker.sock:/var/run/docker.sock
+    ports:
+      - 81:80
