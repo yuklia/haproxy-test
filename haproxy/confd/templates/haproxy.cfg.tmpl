@@ -1,0 +1,61 @@
+global
+    maxconn 4096
+
+defaults
+    mode http
+    timeout connect 5000ms
+    timeout client 50000ms
+    timeout server 50000ms
+
+frontend stats
+    bind 0.0.0.0:8000 name stats
+    mode http
+    stats enable
+    stats hide-version
+    stats realm Haproxy\ Statistics
+    stats uri /haproxy-status
+    stats auth admin:admin
+
+frontend all-requests 0.0.0.0:80
+    bind *:80
+
+    acl acl-{{ getenv "DOMAIN1"}} hdr_dom(host) -i {{ getenv "HOST1" }}
+    acl acl-{{ getenv "DOMAIN2"}} hdr_dom(host) -i {{ getenv "HOST2" }}
+    acl acl-{{ getenv "DOMAIN3"}} hdr_dom(host) -i {{ getenv "HOST3" }}
+
+    use_backend {{ getenv "DOMAIN1" }}_backend if acl-{{ getenv "DOMAIN1" }}
+    use_backend {{ getenv "DOMAIN2" }}_backend if acl-{{ getenv "DOMAIN2" }}
+    use_backend {{ getenv "DOMAIN3" }}_backend if acl-{{ getenv "DOMAIN3" }}
+
+    backend {{ getenv "DOMAIN1" }}_backend
+            mode http
+            balance roundrobin
+            timeout server 60000
+            stats uri /haproxy-status
+            cookie SERVERID insert indirect nocache
+            option httpchk GET /ping.php
+            http-check disable-on-404
+            server disabled-server 127.0.0.1:1 disabled
+            server domain1 {{ getenv "DOMAIN1" }}:8081 cookie check
+
+    backend {{ getenv "DOMAIN2" }}_backend
+           mode http
+           balance roundrobin
+           timeout server 60000
+           stats uri /haproxy-status
+           cookie SERVERID insert indirect nocache
+           option httpchk GET /ping.php
+           http-check disable-on-404
+           server disabled-server 127.0.0.1:1 disabled
+           server domain2 {{ getenv "DOMAIN2" }}:8082 cookie check
+
+  backend {{ getenv "DOMAIN3" }}_backend
+           mode http
+           balance roundrobin
+           timeout server 60000
+           stats uri /haproxy-status
+           cookie SERVERID insert indirect nocache
+           option httpchk GET /ping.php
+           http-check disable-on-404
+           server disabled-server 127.0.0.1:1 disabled
+           server domain3 {{ getenv "DOMAIN3" }}:8083 cookie check
